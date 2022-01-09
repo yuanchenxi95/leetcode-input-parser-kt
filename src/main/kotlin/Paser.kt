@@ -75,6 +75,7 @@ class InputCodecs {
         return Json.decodeFromString(element.toString())
     }
 
+    @Suppress("UNCHECKED_CAST")
     private fun decode(element: JsonElement, type: Type): Any {
         when (type) {
             is ValueType -> {
@@ -93,7 +94,17 @@ class InputCodecs {
                     throw IllegalArgumentException("Element is not JSON Array: $element")
                 }
                 val innerType = type.innerType
-                return element.map { decode(it, innerType) }
+                val result = element.map { decode(it, innerType) }
+                return when (innerType) {
+                    ValueType.INT -> (result as List<Int>).toTypedArray()
+                    ValueType.INT_ARRAY -> (result as List<IntArray>).toTypedArray()
+                    ValueType.BOOLEAN -> (result as List<Boolean>).toTypedArray()
+                    ValueType.BOOLEAN_ARRAY -> (result as List<BooleanArray>).toTypedArray()
+                    ValueType.LONG -> (result as List<Long>).toTypedArray()
+                    ValueType.LONG_ARRAY -> (result as List<LongArray>).toTypedArray()
+                    ValueType.STRING -> (result as List<String>).toTypedArray()
+                    else -> throw IllegalArgumentException("Element is not JSON Array: $element")
+                }
             }
             else -> throw IllegalArgumentException("Unsupported type: $type")
         }
