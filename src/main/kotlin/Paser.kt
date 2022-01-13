@@ -19,6 +19,7 @@ enum class ValueType : Type {
     BOOLEAN,
     BOOLEAN_ARRAY,
     STRING,
+    TREE_NODE,
 }
 
 class ArrayType(val innerType: Type): Type
@@ -34,6 +35,7 @@ fun parseParameter(type: KType): Type {
         Boolean::class.qualifiedName -> ValueType.BOOLEAN
         BooleanArray::class.qualifiedName -> ValueType.BOOLEAN_ARRAY
         String::class.qualifiedName -> ValueType.STRING
+        TreeNode::class.qualifiedName -> ValueType.TREE_NODE
         Array::class.qualifiedName -> {
             val arguments = type.arguments
             assert(arguments.size == 1)
@@ -75,8 +77,61 @@ class InputCodecs {
         return Json.decodeFromString(element.toString())
     }
 
+    private fun decodeTreeNodeType(element: JsonElement): TreeNode? {
+        val nodes = Json.decodeFromString<Array<Int?>>(element.toString())
+        println(nodes)
+        val rootVal = nodes[0]
+        if (nodes.isEmpty() || rootVal == null) {
+            return null
+        }
+        val root = TreeNode(rootVal)
+        var nodesList = mutableListOf<TreeNode?>(root)
+        var index = 1
+        var nextLevelSize = 2
+        while (index < nodes.size) {
+            val nextLevelNodes = MutableList<TreeNode?>(nextLevelSize) {null}
+            for (curIndex in 0 until nextLevelSize) {
+                val parent = nodesList[curIndex/2]!!
+                val newVal = nodes.getOrNull(index + curIndex) ?: break
+                val newNode = TreeNode(newVal)
+                if (curIndex.rem(2) == 0) {
+                    parent.left = newNode
+                } else {
+                    parent.right = newNode
+                }
+                nextLevelNodes[curIndex] = newNode
+            }
+            index += nextLevelSize
+            nextLevelSize *= 2
+            nodesList = nextLevelNodes
+        }
+
+        return root
+    }
+
+    fun convertTreeNodeToArray(root: TreeNode?): List<Int?> {
+        if (root == null) {
+            return listOf()
+        }
+        val res = mutableListOf<Int?>(root.`val`)
+        var curLevel = listOf<TreeNode?>(root)
+        while (true) {
+            val nextLevel = mutableListOf<TreeNode?>()
+            for (cur in curLevel) {
+                nextLevel.add(cur?.left)
+                nextLevel.add(cur?.right)
+            }
+            if (nextLevel.all { it == null }) {
+                break
+            }
+            nextLevel.forEach { res.add(it?.`val`) }
+            curLevel = nextLevel
+        }
+        return res
+    }
+
     @Suppress("UNCHECKED_CAST")
-    private fun decode(element: JsonElement, type: Type): Any {
+    private fun decode(element: JsonElement, type: Type): Any? {
         when (type) {
             is ValueType -> {
                 return when (type) {
@@ -87,6 +142,7 @@ class InputCodecs {
                     ValueType.LONG -> decodeLong(element)
                     ValueType.LONG_ARRAY -> decodeLongArray(element)
                     ValueType.STRING -> decodeString(element)
+                    ValueType.TREE_NODE -> decodeTreeNodeType(element)
                 }
             }
             is ArrayType -> {
@@ -110,7 +166,7 @@ class InputCodecs {
         }
     }
 
-    fun decodeRawInput(input: String, type: Type): Any {
+    fun decodeRawInput(input: String, type: Type): Any? {
         val jsonElement = Json.parseToJsonElement(input)
         return decode(jsonElement, type)
     }
@@ -123,7 +179,7 @@ fun parseInputToValues(kFunction: KFunction<*>): List<Type> {
     }.toList()
 }
 
-fun extractValuesFromInputs(inputs: List<String>, types: List<Type>): Array<Any> {
+fun extractValuesFromInputs(inputs: List<String>, types: List<Type>): Array<Any?> {
     assert(inputs.size == types.size) {
         "Input sizes ${inputs.size} is different from type sizes ${types.size}"
     }
@@ -152,8 +208,10 @@ fun main() {
     val solution = Solution()
     val result = call(solution, inputs)
 
-    println(result)
+    if (result is TreeNode) {
+        val results = InputCodecs().convertTreeNodeToArray(result)
+        println(results)
+    } else {
+        println(result)
+    }
 }
-
-
-
