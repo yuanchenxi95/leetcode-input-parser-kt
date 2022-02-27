@@ -92,7 +92,11 @@ class InputCodecs {
             val nextLevelNodes = MutableList<TreeNode?>(nextLevelSize) {null}
             for (curIndex in 0 until nextLevelSize) {
                 val parent = nodesList[curIndex/2]!!
-                val newVal = nodes.getOrNull(index + curIndex) ?: break
+                val newVal = nodes.getOrNull(index + curIndex)
+                if (newVal == null) {
+                    nextLevelNodes[curIndex] = null
+                    continue
+                }
                 val newNode = TreeNode(newVal)
                 if (curIndex.rem(2) == 0) {
                     parent.left = newNode
