@@ -20,6 +20,7 @@ enum class ValueType : Type {
     BOOLEAN_ARRAY,
     STRING,
     TREE_NODE,
+    LIST_NODE,
 }
 
 class ArrayType(val innerType: Type): Type
@@ -36,7 +37,8 @@ fun parseParameter(type: KType): Type {
         BooleanArray::class.qualifiedName -> ValueType.BOOLEAN_ARRAY
         String::class.qualifiedName -> ValueType.STRING
         TreeNode::class.qualifiedName -> ValueType.TREE_NODE
-        Array::class.qualifiedName -> {
+        ListNode::class.qualifiedName -> ValueType.LIST_NODE
+        Array<Any>::class.qualifiedName -> {
             val arguments = type.arguments
             assert(arguments.size == 1)
             val innerKType = arguments[0].type
@@ -79,7 +81,6 @@ class InputCodecs {
 
     private fun decodeTreeNodeType(element: JsonElement): TreeNode? {
         val nodes = Json.decodeFromString<Array<Int?>>(element.toString())
-        println(nodes)
         val rootVal = nodes[0]
         if (nodes.isEmpty() || rootVal == null) {
             return null
@@ -113,6 +114,18 @@ class InputCodecs {
         return root
     }
 
+    fun decodeListNodeType(element: JsonElement): ListNode? {
+        val nodes = Json.decodeFromString<IntArray>(element.toString())
+        val root = ListNode(-1)
+        var cur = root
+        for (node in nodes) {
+            val newNode = ListNode(node)
+            cur.next = newNode
+            cur = newNode
+        }
+        return root.next
+    }
+
     fun convertTreeNodeToArray(root: TreeNode?): List<Int?> {
         if (root == null) {
             return listOf()
@@ -134,6 +147,16 @@ class InputCodecs {
         return res
     }
 
+    fun convertListNodeToArray(head: ListNode?): List<Int> {
+        val res = mutableListOf<Int>()
+        var cur = head
+        while (cur != null) {
+            res.add(cur.`val`)
+            cur = cur.next
+        }
+        return res
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun decode(element: JsonElement, type: Type): Any? {
         when (type) {
@@ -147,6 +170,7 @@ class InputCodecs {
                     ValueType.LONG_ARRAY -> decodeLongArray(element)
                     ValueType.STRING -> decodeString(element)
                     ValueType.TREE_NODE -> decodeTreeNodeType(element)
+                    ValueType.LIST_NODE -> decodeListNodeType(element)
                 }
             }
             is ArrayType -> {
@@ -211,11 +235,13 @@ fun main() {
 
     val solution = Solution()
     val result = call(solution, inputs)
+    val codecs = InputCodecs()
 
-    if (result is TreeNode) {
-        val results = InputCodecs().convertTreeNodeToArray(result)
-        println(results)
-    } else {
-        println(result)
+    val formattedResult = when (result) {
+        is TreeNode -> codecs.convertTreeNodeToArray(result)
+        is ListNode -> codecs.convertListNodeToArray(result)
+        else -> result
     }
+
+    println(formattedResult)
 }
