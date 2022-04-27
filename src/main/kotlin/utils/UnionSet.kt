@@ -5,7 +5,7 @@ class UnionSet {
   val length = mutableMapOf<Int, Int>()
 
   fun find(ii: Int): Int {
-    val target = unionSet[ii] ?: return ii
+    val target = unionSet[ii]?.takeIf { it != ii } ?: return ii
     val jj = find(target)
     unionSet[ii] = jj
     return jj
