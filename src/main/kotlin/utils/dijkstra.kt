@@ -3,7 +3,7 @@ package utils
 import java.util.PriorityQueue
 
 fun buildGraph(
-  edges: Array<IntArray>, reversed: Boolean = false, bidirectional: Boolean = false,
+  edges: Array<IntArray>, reversed: Boolean = false, bidirectional: Boolean = false
 ): Map<Int, Map<Int, Long>> {
   val res = mutableMapOf<Int, MutableMap<Int, Long>>()
   for (edge in edges) {
