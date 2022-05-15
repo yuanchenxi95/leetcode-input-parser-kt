@@ -1,6 +1,6 @@
 package utils
 
-import java.util.*
+import java.util.TreeMap
 
 class IntervalSet {
     val treeMap = TreeMap<Int, Int>()
@@ -12,8 +12,8 @@ class IntervalSet {
         }
         treeMap[left] = right
         merge(left, right)
-        treeMap.lowerEntry(left)?.let {
-            merge(it.key, it.value)
+        treeMap.lowerEntry(left)?.takeIf { it.value >= left }?.let {
+            treeMap[it.key] = treeMap.remove(left)!!
         }
 
         return rangeSum(left, right) - previousSum
