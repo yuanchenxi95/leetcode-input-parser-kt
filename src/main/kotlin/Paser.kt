@@ -23,7 +23,7 @@ enum class ValueType : Type {
     LIST_NODE,
 }
 
-class ArrayType(val innerType: Type): Type
+class ArrayType(val innerType: Type) : Type
 
 fun parseParameter(type: KType): Type {
     val classifier = type.classifier as KClass<*>
@@ -86,28 +86,25 @@ class InputCodecs {
             return null
         }
         val root = TreeNode(rootVal)
-        var nodesList = mutableListOf<TreeNode?>(root)
+        var nodesList = mutableListOf(root)
         var index = 1
-        var nextLevelSize = 2
         while (index < nodes.size) {
-            val nextLevelNodes = MutableList<TreeNode?>(nextLevelSize) {null}
-            for (curIndex in 0 until nextLevelSize) {
-                val parent = nodesList[curIndex/2]!!
-                val newVal = nodes.getOrNull(index + curIndex)
+            val nextLevelNodes = mutableListOf<TreeNode>()
+            for (curIndex in 0 until nodesList.size * 2) {
+                val parent = nodesList[curIndex / 2]
+                val newVal = nodes.getOrNull(index)
+                index += 1
                 if (newVal == null) {
-                    nextLevelNodes[curIndex] = null
                     continue
                 }
                 val newNode = TreeNode(newVal)
-                if (curIndex.rem(2) == 0) {
+                if (curIndex and 1 == 0) {
                     parent.left = newNode
                 } else {
                     parent.right = newNode
                 }
-                nextLevelNodes[curIndex] = newNode
+                nextLevelNodes.add(newNode)
             }
-            index += nextLevelSize
-            nextLevelSize *= 2
             nodesList = nextLevelNodes
         }
 
@@ -226,7 +223,7 @@ fun extractFunction(kClass: KClass<*>, methodName: String? = null): KFunction<*>
 fun call(solution: Solution, inputs: List<String>, methodName: String? = null): Any? {
     val kFunction = extractFunction(solution::class)
     val types = parseInputToValues(kFunction)
-    val arguments =extractValuesFromInputs(inputs, types)
+    val arguments = extractValuesFromInputs(inputs, types)
     return kFunction.call(solution, *arguments)
 }
 
