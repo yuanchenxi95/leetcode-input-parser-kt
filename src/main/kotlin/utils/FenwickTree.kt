@@ -13,11 +13,19 @@ class FenwickTree(val n: Int) {
         return res
     }
 
+    fun intSum(rr: Int): Int {
+        return sum(rr).toInt()
+    }
+
     fun add(idx: Int, delta: Long) {
         var ii = idx
         while (ii < n) {
             nums[ii] = nums.getOrDefault(ii, 0) + delta
             ii = ii or (ii + 1)
         }
+    }
+
+    fun add(idx: Int, delta: Int) {
+        add(idx, delta.toLong())
     }
 }
